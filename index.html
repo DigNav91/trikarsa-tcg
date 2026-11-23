@@ -1,0 +1,1454 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Tri Karsa TCG — Tactical Card Duel</title>
+    
+    <!-- OpenGraph & Social Media Sharing Meta Tags -->
+    <meta property="og:title" content="Tri Karsa TCG — Tactical Card Duel" />
+    <meta property="og:description" content="Adu taktik Pedang, Perisai, dan Panah dengan tampilan modern minimalist yang menenangkan!" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://trikarsa-tcg.vercel.app/" />
+    <meta property="og:image" content="https://placehold.co/1200x630/F5F4F0/1C1C1E?text=Tri+Karsa+TCG" />
+    <meta name="theme-color" content="#F5F4F0" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+
+    <!-- FAVICON & TOUCH ICON (Interlocking Prisma Triangle) -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='26' fill='%23F5F4F0'/><path d='M50 16L84 74H36L43 62H64L50 38L50 16Z' fill='%23E17055'/><path d='M84 74L16 74L40 33L47 45L36 62H84Z' fill='%234A90E2'/><path d='M16 74L50 16L74 57H60L50 38L28 74H16Z' fill='%23789B3B'/><path d='M50 16L84 74H16L50 16Z' stroke='%231C1C1E' stroke-width='4.5' stroke-linejoin='round' fill='none'/></svg>">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Plus Jakarta Sans (Clean Modern Rounded Sans-Serif) -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Tone.js for Sound Effects -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <!-- HTML5 QRCode Scanner Library -->
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <!-- QRCode Generator Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <!-- PeerJS for Online WebRTC Room Connections -->
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+
+    <style>
+        @keyframes floatSoft {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-5px); }
+        }
+        @keyframes lockSoftPulse {
+            0%, 100% { box-shadow: 0 0 0 3px rgba(120, 155, 59, 0.35), 0 10px 25px -5px rgba(120, 155, 59, 0.25); }
+            50% { box-shadow: 0 0 0 5px rgba(120, 155, 59, 0.6), 0 12px 30px -5px rgba(120, 155, 59, 0.4); }
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: #F5F4F0;
+            color: #1C1C1E;
+            overflow: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+
+        /* Soft Minimalist Surface & Elevation */
+        .cozy-card {
+            background-color: #FFFFFF;
+            border-radius: 24px;
+            box-shadow: 0 8px 24px -6px rgba(28, 28, 30, 0.06), 0 2px 6px -1px rgba(28, 28, 30, 0.03);
+            border: 1px solid rgba(28, 28, 30, 0.04);
+        }
+
+        .cozy-pill {
+            background-color: #FFFFFF;
+            border-radius: 9999px;
+            box-shadow: 0 4px 14px -2px rgba(28, 28, 30, 0.05);
+            border: 1px solid rgba(28, 28, 30, 0.05);
+        }
+
+        .cozy-btn {
+            transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+            cursor: pointer;
+        }
+        .cozy-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            filter: brightness(1.03);
+        }
+        .cozy-btn:active:not(:disabled) {
+            transform: scale(0.96);
+        }
+        .cozy-btn:disabled {
+            cursor: not-allowed;
+        }
+
+        .slot-locked {
+            border: 2px solid #789B3B !important;
+            animation: lockSoftPulse 2s infinite ease-in-out;
+        }
+
+        /* 3D Card Flip Perspective */
+        .card-perspective {
+            perspective: 1000px;
+        }
+
+        .card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            transition: transform 0.65s cubic-bezier(0.34, 1.56, 0.64, 1);
+            transform-style: preserve-3d;
+        }
+
+        .card-inner.flipped {
+            transform: rotateY(180deg);
+        }
+
+        .card-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            inset: 0;
+            border-radius: 22px;
+        }
+
+        .card-back {
+            background: linear-gradient(145deg, #EAE8E1 0%, #DFDCD3 100%);
+            border: 2px solid #FFFFFF;
+            box-shadow: 0 6px 16px -4px rgba(28, 28, 30, 0.08);
+        }
+
+        .card-front {
+            transform: rotateY(180deg);
+            background-color: #FFFFFF;
+            box-shadow: 0 10px 24px -6px rgba(28, 28, 30, 0.1);
+        }
+
+        .floating-anim {
+            animation: floatSoft 3.5s ease-in-out infinite;
+        }
+
+        #qr-reader {
+            border-radius: 20px !important;
+            overflow: hidden;
+            background: #1C1C1E;
+        }
+        #qr-reader video {
+            object-fit: cover !important;
+            border-radius: 20px;
+        }
+    </style>
+</head>
+<body class="relative h-[100dvh] w-screen overflow-hidden bg-[#F5F4F0] text-[#1C1C1E] flex flex-col justify-between p-3 md:p-5 box-border">
+
+    <!-- TOP HEADER BAR -->
+    <div id="top-header-bar" class="relative z-10 w-full max-w-md mx-auto flex items-center justify-between px-4 py-2.5 cozy-pill shrink-0">
+        <div class="flex items-center gap-2.5">
+            <div class="w-7 h-7 rounded-full bg-[#F7B731] flex items-center justify-center text-white shadow-sm">
+                <i class="fa-solid fa-sun text-xs"></i>
+            </div>
+            <div class="flex flex-col leading-tight">
+                <span class="font-extrabold text-xs md:text-sm tracking-tight text-[#1C1C1E]">Tri Karsa</span>
+                <span id="game-mode-badge" class="text-[10px] font-bold text-[#8E8E93] uppercase">VS AI Mode</span>
+            </div>
+        </div>
+        
+        <div class="flex items-center gap-3 text-xs">
+            <div class="flex items-center gap-1.5 bg-[#FFF6E0] text-[#D9820B] px-2.5 py-1 rounded-full font-bold" title="Win Streak">
+                <i class="fa-solid fa-fire text-[#F7B731]"></i>
+                <span><span id="streak-count">0</span></span>
+            </div>
+            <div class="flex items-center gap-1.5 bg-[#F2F1ED] text-[#5C584F] px-2.5 py-1 rounded-full font-bold" title="Win/Loss Record">
+                <span class="text-[10px] text-[#8E8E93]">W/L</span>
+                <span id="total-stats">0/0</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 1. TITLE SCREEN OVERLAY -->
+    <div id="title-screen" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#F5F4F0] p-4 md:p-6 overflow-y-auto">
+        <div class="w-full max-w-sm md:max-w-md flex flex-col gap-4 my-auto">
+            
+            <!-- Top Greeting & Profile Row -->
+            <div class="flex items-center justify-between px-1">
+                <div>
+                    <p class="text-xs font-semibold text-[#8E8E93] uppercase tracking-wider" data-i18n="welcome_tag">Selamat datang,</p>
+                    <h1 class="text-2xl md:text-3xl font-extrabold text-[#1C1C1E] tracking-tight">Tri Karsa TCG</h1>
+                </div>
+                <div class="flex items-center gap-2">
+                    <!-- Language Toggle Pill -->
+                    <button onclick="toggleLanguage()" class="w-10 h-10 rounded-full cozy-pill flex items-center justify-center font-extrabold text-xs text-[#1C1C1E] cozy-btn" title="Ganti Bahasa / Switch Language">
+                        <span id="lang-btn-text">ID</span>
+                    </button>
+                    <!-- Creator Avatar Badge -->
+                    <div class="w-10 h-10 rounded-full bg-[#F7B731] text-white flex items-center justify-center font-extrabold text-sm shadow-md">
+                        <i class="fa-solid fa-gamepad"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Hero Featured Card -->
+            <div class="relative overflow-hidden rounded-[28px] bg-gradient-to-br from-[#F7B731] to-[#F5A623] p-6 text-[#1C1C1E] shadow-lg">
+                <div class="relative z-10 flex flex-col gap-1.5 max-w-[75%]">
+                    <h2 class="text-lg md:text-xl font-extrabold leading-snug" data-i18n="hero_title">
+                        Adu Taktik Tiga Senjata
+                    </h2>
+                    <p class="text-xs font-medium text-[#1C1C1E]/80 leading-relaxed" data-i18n="subtitle">
+                        Pedang, Perisai, dan Panah dalam duel kartu santai namun penuh strategi.
+                    </p>
+                </div>
+                <!-- Tri Karsa Geometric Prism Triangle Illustration on Right -->
+                <div class="absolute -right-4 -bottom-4 w-28 h-28 rounded-full bg-[#FFE082]/50 flex items-center justify-center floating-anim">
+                    <div class="w-16 h-16 rounded-full bg-[#FFD54F] flex items-center justify-center shadow-inner">
+                        <svg class="w-10 h-10" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <!-- Tiga Sisi Prisma Saling Mengunci (Interlocking Triangle) -->
+                            <path d="M50 16L84 74H36L43 62H64L50 38L50 16Z" fill="#E17055"/>
+                            <path d="M84 74L16 74L40 33L47 45L36 62H84Z" fill="#4A90E2"/>
+                            <path d="M16 74L50 16L74 57H60L50 38L28 74H16Z" fill="#789B3B"/>
+                            <!-- Garis Outline Tegas -->
+                            <path d="M50 16L84 74H16L50 16Z" stroke="#1C1C1E" stroke-width="4.5" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Menu Cards -->
+            <div class="flex flex-col gap-2.5">
+                <div class="flex items-center justify-between px-1">
+                    <span class="text-sm font-extrabold text-[#1C1C1E]" data-i18n="choose_mode">Pilih Mode Bermain</span>
+                    <button onclick="openChangelogModal()" class="text-xs font-semibold text-[#8E8E93] hover:text-[#1C1C1E] transition-colors">
+                        <span data-i18n="changelog">Info & Stats</span> <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <!-- VS AI Card (Warm Pastel Blush) -->
+                    <button onclick="selectGameMode('ai')" class="cozy-btn text-left p-4 rounded-[24px] bg-[#FCE8E6] hover:bg-[#FADAD6] flex flex-col justify-between h-32 shadow-sm">
+                        <div class="flex justify-between items-start w-full">
+                            <span class="font-extrabold text-sm text-[#1C1C1E]" data-i18n="vs_ai">Versus AI</span>
+                            <span class="w-7 h-7 rounded-full bg-white/80 flex items-center justify-center text-[#D9534F] text-xs">
+                                <i class="fa-solid fa-robot"></i>
+                            </span>
+                        </div>
+                        <p class="text-[11px] font-medium text-[#5C584F] leading-snug" data-i18n="vs_ai_desc">
+                            Latih strategimu melawan bot pintar.
+                        </p>
+                        <span class="inline-block w-fit px-3 py-1 rounded-full bg-white text-[10px] font-bold text-[#D9534F]">
+                            Solo
+                        </span>
+                    </button>
+
+                    <!-- VS Online Card (Soft Lavender) -->
+                    <button onclick="openOnlineRoomModal()" class="cozy-btn text-left p-4 rounded-[24px] bg-[#ECE8FA] hover:bg-[#E2DCFA] flex flex-col justify-between h-32 shadow-sm">
+                        <div class="flex justify-between items-start w-full">
+                            <span class="font-extrabold text-sm text-[#1C1C1E]" data-i18n="vs_online">Online PvP</span>
+                            <span class="w-7 h-7 rounded-full bg-white/80 flex items-center justify-center text-[#6C5CE7] text-xs">
+                                <i class="fa-solid fa-globe"></i>
+                            </span>
+                        </div>
+                        <p class="text-[11px] font-medium text-[#5C584F] leading-snug" data-i18n="vs_online_desc">
+                            Duel 1v1 bersama teman via Room & QR.
+                        </p>
+                        <span class="inline-block w-fit px-3 py-1 rounded-full bg-white text-[10px] font-bold text-[#6C5CE7]">
+                            Multiplayer
+                        </span>
+                    </button>
+                </div>
+
+                <!-- How to Play Wide Card (Soft Sage Green) -->
+                <button onclick="openTutorialModal()" class="cozy-btn w-full p-4 rounded-[24px] bg-[#E8F1DC] hover:bg-[#DFECCE] flex items-center justify-between shadow-sm">
+                    <div class="flex items-center gap-3 text-left">
+                        <div class="w-10 h-10 rounded-2xl bg-white flex items-center justify-center text-[#789B3B] shadow-2xs">
+                            <i class="fa-solid fa-book-open"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-extrabold text-sm text-[#1C1C1E]" data-i18n="how_to_play">Cara Bermain</h3>
+                            <p class="text-[11px] font-medium text-[#5C584F]" data-i18n="how_to_play_desc">Pelajari aturan segitiga senjata & skor</p>
+                        </div>
+                    </div>
+                    <span class="w-8 h-8 rounded-full bg-white flex items-center justify-center text-[#1C1C1E] text-xs">
+                        <i class="fa-solid fa-arrow-right"></i>
+                    </span>
+                </button>
+            </div>
+
+            <!-- Creator Credit Footer -->
+            <div class="text-center pt-1">
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#EAE8E1]/70 text-[11px] font-semibold text-[#6E6D70]">
+                    Crafted with <i class="fa-solid fa-heart text-[#E17055] text-[10px]"></i> by <strong class="text-[#1C1C1E]">ditto.exe</strong>
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 1.5 ONLINE ROOM & QR SCAN MATCHMAKING MODAL -->
+    <div id="online-modal" class="fixed inset-0 z-50 bg-[#1C1C1E]/40 backdrop-blur-xs flex flex-col items-center justify-center p-4 hidden">
+        <div class="cozy-card p-6 max-w-sm w-full text-center flex flex-col items-center gap-4 max-h-[90vh] overflow-y-auto">
+            
+            <div class="flex items-center justify-between w-full">
+                <span class="text-base font-extrabold text-[#1C1C1E]" data-i18n="online_title">Online Room Match</span>
+                <button onclick="closeOnlineRoomModal()" class="w-8 h-8 rounded-full bg-[#F5F4F0] hover:bg-[#EAE8E1] text-[#1C1C1E] flex items-center justify-center transition-colors">
+                    <i class="fa-solid fa-xmark text-sm"></i>
+                </button>
+            </div>
+
+            <!-- ONLINE SETUP VIEW -->
+            <div id="online-setup-view" class="w-full flex flex-col gap-3">
+                <div class="flex flex-col gap-2 bg-[#FFF8E7] p-4 rounded-2xl text-left">
+                    <span class="text-xs text-[#D9820B] font-bold" data-i18n="create_room_title">1. Buat Room Baru</span>
+                    <button onclick="createOnlineRoom()" class="w-full py-3 bg-[#F7B731] hover:bg-[#F5A623] text-[#1C1C1E] font-extrabold rounded-full cozy-btn text-xs flex items-center justify-center gap-2 shadow-sm">
+                        <i class="fa-solid fa-plus-circle"></i> <span data-i18n="create_room_btn">Buat Room & QR Code</span>
+                    </button>
+                </div>
+
+                <div class="text-xs text-[#8E8E93] font-semibold" data-i18n="or_divider">atau</div>
+
+                <div class="flex flex-col gap-2.5 bg-[#F5F4F0] p-4 rounded-2xl text-left">
+                    <span class="text-xs text-[#5C584F] font-bold" data-i18n="join_room_title">2. Gabung Room Teman</span>
+                    
+                    <div class="flex gap-2">
+                        <input id="room-code-input" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="0000" class="w-full py-2.5 px-3 text-center bg-white text-[#1C1C1E] border border-[#DFDCD3] font-extrabold text-sm rounded-full tracking-widest focus:outline-none focus:border-[#F7B731]">
+                        <button onclick="joinOnlineRoom()" class="py-2.5 px-5 bg-[#1C1C1E] hover:bg-[#3A3A3C] text-white font-bold rounded-full cozy-btn text-xs whitespace-nowrap" data-i18n="join_btn">
+                            Join
+                        </button>
+                    </div>
+
+                    <button onclick="openQRScannerView()" class="w-full py-2.5 bg-white hover:bg-[#EAE8E1] text-[#1C1C1E] font-bold rounded-full cozy-btn text-xs flex items-center justify-center gap-2 border border-[#DFDCD3]">
+                        <i class="fa-solid fa-qrcode text-[#789B3B]"></i> <span data-i18n="scan_qr_btn">Scan QR Room Lawan</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- QR SCANNER INPUT VIEW -->
+            <div id="qr-scan-view" class="w-full flex flex-col items-center gap-3 hidden">
+                <div class="flex items-center justify-between w-full">
+                    <span class="text-xs text-[#789B3B] font-bold"><i class="fa-solid fa-camera"></i> <span data-i18n="scan_instruction">Arahkan ke QR Room</span></span>
+                    <button onclick="toggleCameraFacing()" class="w-8 h-8 rounded-full bg-[#F5F4F0] text-[#1C1C1E] text-xs flex items-center justify-center" title="Ganti Kamera">
+                        <i class="fa-solid fa-camera-rotate"></i>
+                    </button>
+                </div>
+                
+                <div id="qr-reader" class="w-full max-w-[230px] aspect-square relative flex items-center justify-center"></div>
+                <p id="qr-scan-status" class="text-xs text-[#8E8E93]" data-i18n="waiting_qr">Menunggu pemindaian QR Room...</p>
+                
+                <button onclick="backToSetupView()" class="w-full py-2.5 bg-[#F5F4F0] hover:bg-[#EAE8E1] text-[#1C1C1E] font-bold text-xs rounded-full cozy-btn" data-i18n="back_to_menu">
+                    Kembali ke Input Kode
+                </button>
+            </div>
+
+            <!-- ROOM WAITING SCREEN -->
+            <div id="online-waiting-view" class="w-full flex flex-col items-center gap-2.5 hidden">
+                <div class="text-xs text-[#8E8E93] font-semibold" data-i18n="your_room_code">Kode Room Kamu</div>
+                <div id="display-room-code" class="text-3xl font-extrabold text-[#1C1C1E] tracking-widest bg-[#FFF8E7] px-6 py-2 rounded-2xl select-all">
+                    ----
+                </div>
+
+                <div class="p-3 bg-white rounded-3xl border border-[#EAE8E1] shadow-sm flex items-center justify-center my-1">
+                    <div id="room-qrcode-display"></div>
+                </div>
+
+                <p class="text-xs text-[#8E8E93] max-w-[240px]" data-i18n="share_room_code_desc">Minta temanmu scan QR ini atau masukkan 4 digit kode di atas</p>
+
+                <p id="online-status-text" class="text-xs text-[#D9820B] animate-pulse font-bold mt-1" data-i18n="connecting_server">
+                    Menghubungkan ke server...
+                </p>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- 5. CENTER MATCH ARENA (COZY MINIMALIST BOARD) -->
+    <div class="relative z-10 flex flex-col items-center justify-between flex-1 w-full max-w-md mx-auto py-1 md:py-2 box-border">
+        
+        <!-- Score Tracker & Menu Controls -->
+        <div class="w-full flex justify-between items-center text-xs shrink-0">
+            <div class="flex items-center gap-2 cozy-pill px-3.5 py-1.5 font-bold text-[#1C1C1E]">
+                <span class="w-2.5 h-2.5 rounded-full bg-[#789B3B]"></span>
+                <span><span data-i18n="you">Kamu</span>: <span id="player-score" class="text-sm font-extrabold">0</span></span>
+            </div>
+            
+            <div class="flex items-center gap-1.5">
+                <button onclick="returnToTitle()" class="w-8 h-8 rounded-full cozy-pill cozy-btn text-[#5C584F] hover:text-[#1C1C1E] flex items-center justify-center" title="Menu Utama">
+                    <i class="fa-solid fa-house text-xs"></i>
+                </button>
+                
+                <button onclick="toggleSound()" class="px-3 h-8 rounded-full cozy-pill cozy-btn text-[#5C584F] hover:text-[#1C1C1E] text-xs font-bold flex items-center gap-1.5">
+                    <i id="sound-icon" class="fa-solid fa-volume-high text-[#F7B731]"></i>
+                    <span id="sound-text">SFX</span>
+                </button>
+            </div>
+
+            <div class="flex items-center gap-2 cozy-pill px-3.5 py-1.5 font-bold text-[#1C1C1E]">
+                <span class="w-2.5 h-2.5 rounded-full bg-[#E17055]"></span>
+                <span><span id="p2-label" data-i18n="enemy">Musuh</span>: <span id="enemy-score" class="text-sm font-extrabold">0</span></span>
+            </div>
+        </div>
+
+        <!-- ENEMY CARD SLOTS -->
+        <div class="flex items-center justify-center gap-2.5 md:gap-3.5 w-full my-auto">
+            <div id="e-slot-0" class="w-24 h-32 sm:w-28 sm:h-40 md:w-32 md:h-44 card-perspective transition-all relative">
+                <div id="e-card-inner-0" class="card-inner">
+                    <div id="e-card-back-0" class="card-face card-back flex flex-col items-center justify-center relative">
+                        <span id="e-led-0" class="absolute top-2.5 right-2.5 w-2.5 h-2.5 rounded-full bg-[#C7C4BA] transition-colors" title="Status Lawan"></span>
+                        <div class="w-10 h-10 rounded-full bg-white/60 flex items-center justify-center text-[#8E8E93]">
+                            <i class="fa-solid fa-leaf text-base"></i>
+                        </div>
+                    </div>
+                    <div id="e-card-front-0" class="card-face card-front"></div>
+                </div>
+            </div>
+            <div id="e-slot-1" class="w-24 h-32 sm:w-28 sm:h-40 md:w-32 md:h-44 card-perspective transition-all relative">
+                <div id="e-card-inner-1" class="card-inner">
+                    <div id="e-card-back-1" class="card-face card-back flex flex-col items-center justify-center relative">
+                        <span id="e-led-1" class="absolute top-2.5 right-2.5 w-2.5 h-2.5 rounded-full bg-[#C7C4BA] transition-colors" title="Status Lawan"></span>
+                        <div class="w-10 h-10 rounded-full bg-white/60 flex items-center justify-center text-[#8E8E93]">
+                            <i class="fa-solid fa-leaf text-base"></i>
+                        </div>
+                    </div>
+                    <div id="e-card-front-1" class="card-face card-front"></div>
+                </div>
+            </div>
+            <div id="e-slot-2" class="w-24 h-32 sm:w-28 sm:h-40 md:w-32 md:h-44 card-perspective transition-all relative">
+                <div id="e-card-inner-2" class="card-inner">
+                    <div id="e-card-back-2" class="card-face card-back flex flex-col items-center justify-center relative">
+                        <span id="e-led-2" class="absolute top-2.5 right-2.5 w-2.5 h-2.5 rounded-full bg-[#C7C4BA] transition-colors" title="Status Lawan"></span>
+                        <div class="w-10 h-10 rounded-full bg-white/60 flex items-center justify-center text-[#8E8E93]">
+                            <i class="fa-solid fa-leaf text-base"></i>
+                        </div>
+                    </div>
+                    <div id="e-card-front-2" class="card-face card-front"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- STATUS BANNER (Cozy Pill Notification) -->
+        <div id="status-banner" class="px-4 py-2.5 cozy-pill bg-white text-[#1C1C1E] font-bold text-xs md:text-sm text-center w-full flex flex-col items-center justify-center shrink-0 my-1">
+            <span id="banner-main" class="text-[#1C1C1E]" data-i18n="select_order">Pilih Urutan Senjatamu!</span>
+        </div>
+
+        <!-- PLAYER CARD SLOTS -->
+        <div class="flex items-center justify-center gap-2.5 md:gap-3.5 w-full my-auto">
+            <div id="p-slot-0" class="w-24 h-32 sm:w-28 sm:h-40 md:w-32 md:h-44 rounded-[22px] border-2 border-dashed border-[#D6D3C9] bg-white/50 flex flex-col items-center justify-center transition-all relative">
+                <span class="text-xs text-[#A3A096] font-bold">Slot 1</span>
+            </div>
+            <div id="p-slot-1" class="w-24 h-32 sm:w-28 sm:h-40 md:w-32 md:h-44 rounded-[22px] border-2 border-dashed border-[#D6D3C9] bg-white/50 flex flex-col items-center justify-center transition-all relative">
+                <span class="text-xs text-[#A3A096] font-bold">Slot 2</span>
+            </div>
+            <div id="p-slot-2" class="w-24 h-32 sm:w-28 sm:h-40 md:w-32 md:h-44 rounded-[22px] border-2 border-dashed border-[#D6D3C9] bg-white/50 flex flex-col items-center justify-center transition-all relative">
+                <span class="text-xs text-[#A3A096] font-bold">Slot 3</span>
+            </div>
+        </div>
+
+        <!-- WEAPON SELECTION BUTTONS & ACTION CONTROL -->
+        <div class="w-full flex flex-col gap-2.5 shrink-0 mt-auto">
+            <div class="grid grid-cols-3 gap-2.5 w-full">
+                <!-- SWORD BUTTON (Warm Terracotta Blush) -->
+                <button id="btn-sword" onclick="addWeapon('sword')" class="py-2.5 md:py-3 rounded-[22px] bg-[#FCE8E6] hover:bg-[#FADAD6] cozy-btn flex flex-col items-center justify-center shadow-xs disabled:opacity-40">
+                    <div class="w-10 h-10 md:w-11 md:h-11 rounded-2xl bg-white flex items-center justify-center mb-1 shadow-2xs">
+                        <svg class="w-6 h-6 md:w-7 md:h-7" viewBox="0 0 64 64" fill="none">
+                            <path d="M46 10L54 18L26 46L18 38L46 10Z" fill="#E17055"/>
+                            <path d="M48 12L52 16L25 43L21 39L48 12Z" fill="#FAB1A0"/>
+                            <path d="M14 34L30 50" stroke="#D9820B" stroke-width="5" stroke-linecap="round"/>
+                            <path d="M19 45L11 53" stroke="#6C5CE7" stroke-width="5" stroke-linecap="round"/>
+                            <circle cx="10" cy="54" r="3.5" fill="#F7B731"/>
+                        </svg>
+                    </div>
+                    <span id="btn-sword-text" class="text-xs font-extrabold text-[#B84A39]" data-i18n="sword">Pedang</span>
+                </button>
+
+                <!-- SHIELD BUTTON (Soft Sky Blue) -->
+                <button id="btn-shield" onclick="addWeapon('shield')" class="py-2.5 md:py-3 rounded-[22px] bg-[#E3F1FC] hover:bg-[#D4E9FA] cozy-btn flex flex-col items-center justify-center shadow-xs disabled:opacity-40">
+                    <div class="w-10 h-10 md:w-11 md:h-11 rounded-2xl bg-white flex items-center justify-center mb-1 shadow-2xs">
+                        <svg class="w-6 h-6 md:w-7 md:h-7" viewBox="0 0 64 64" fill="none">
+                            <path d="M14 12H50V28C50 43 32 54 32 54C32 54 14 43 14 28V12Z" fill="#4A90E2"/>
+                            <path d="M20 18H44V28C44 39 32 47 32 47C32 47 20 39 20 28V18Z" fill="#74B9FF"/>
+                            <circle cx="32" cy="30" r="5" fill="#FFF8E7"/>
+                        </svg>
+                    </div>
+                    <span id="btn-shield-text" class="text-xs font-extrabold text-[#2B6CB0]" data-i18n="shield">Perisai</span>
+                </button>
+
+                <!-- ARROW BUTTON (Soft Sage Green) -->
+                <button id="btn-arrow" onclick="addWeapon('arrow')" class="py-2.5 md:py-3 rounded-[22px] bg-[#E8F1DC] hover:bg-[#DFECCE] cozy-btn flex flex-col items-center justify-center shadow-xs disabled:opacity-40">
+                    <div class="w-10 h-10 md:w-11 md:h-11 rounded-2xl bg-white flex items-center justify-center mb-1 shadow-2xs">
+                        <svg class="w-6 h-6 md:w-7 md:h-7" viewBox="0 0 64 64" fill="none">
+                            <path d="M18 12C38 22 38 42 18 52" stroke="#D9820B" stroke-width="5" stroke-linecap="round"/>
+                            <line x1="18" y1="13" x2="18" y2="51" stroke="#A3A096" stroke-width="2"/>
+                            <line x1="12" y1="32" x2="48" y2="32" stroke="#789B3B" stroke-width="4" stroke-linecap="round"/>
+                            <polygon points="54,32 42,24 44,32 42,40" fill="#789B3B"/>
+                        </svg>
+                    </div>
+                    <span id="btn-arrow-text" class="text-xs font-extrabold text-[#557324]" data-i18n="arrow">Panah</span>
+                </button>
+            </div>
+
+            <!-- Action Pill Row -->
+            <div class="flex items-center gap-2.5 w-full">
+                <button id="btn-reset" onclick="resetSelection()" class="px-4 py-3 rounded-full bg-white hover:bg-[#EAE8E1] text-[#5C584F] font-bold text-xs flex items-center justify-center gap-1.5 cozy-btn shadow-xs disabled:opacity-40">
+                    <i class="fa-solid fa-rotate-left"></i> <span data-i18n="reset">Reset</span>
+                </button>
+                <button id="ready-btn" onclick="handleReadyClick()" disabled class="flex-1 py-3 bg-[#E5E3DC] text-[#A3A096] font-extrabold text-xs md:text-sm rounded-full cursor-not-allowed transition-all" data-i18n="ready_battle">
+                    Ready for Battle
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL INFO & STATS -->
+    <div id="changelog-modal" class="fixed inset-0 z-50 bg-[#1C1C1E]/40 backdrop-blur-xs flex flex-col items-center justify-center p-4 hidden">
+        <div class="cozy-card p-6 max-w-md w-full flex flex-col gap-4 max-h-[85vh] overflow-y-auto text-left">
+            <div class="flex justify-between items-center">
+                <h3 class="text-base font-extrabold text-[#1C1C1E]" data-i18n="notes_title">Tentang Tri Karsa TCG</h3>
+                <button onclick="closeChangelogModal()" class="w-8 h-8 rounded-full bg-[#F5F4F0] text-[#1C1C1E] flex items-center justify-center font-bold text-xs">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="text-xs leading-relaxed text-[#5C584F] flex flex-col gap-2.5">
+                <p class="text-[#D9820B] font-bold" data-i18n="notes_subtitle">✨ Fitur Utama Permainan:</p>
+                <ul class="list-disc list-inside space-y-1.5">
+                    <li data-i18n="notes_item_1">Desain <strong>Modern Cozy Minimalist</strong> yang lembut dan nyaman di mata.</li>
+                    <li data-i18n="notes_item_2">Ketuk langsung kartu di Slot 1–3 untuk membatalkannya sebelum terkunci.</li>
+                    <li data-i18n="notes_item_3">Efek suara marimba lembut & animasi membalik kartu <strong>3D Flip</strong>.</li>
+                    <li data-i18n="notes_item_4">Dukungan duel <strong>Online PvP</strong> instan via kode 4-digit maupun QR Code.</li>
+                </ul>
+            </div>
+
+            <div class="pt-2 border-t border-[#EAE8E1] flex flex-col gap-2">
+                <button onclick="resetSavedStats()" class="w-full py-2.5 bg-[#FCE8E6] hover:bg-[#FADAD6] text-[#B84A39] font-bold rounded-full cozy-btn text-xs flex items-center justify-center gap-1.5">
+                    <i class="fa-solid fa-trash-can"></i> <span data-i18n="reset_stats">Reset Statistik</span>
+                </button>
+                <button onclick="closeChangelogModal()" class="w-full py-2.5 bg-[#1C1C1E] hover:bg-[#3A3A3C] text-white font-bold rounded-full text-xs" data-i18n="close_btn">
+                    Tutup
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL TUTORIAL / CARA BERMAIN -->
+    <div id="tutorial-modal" class="fixed inset-0 z-50 bg-[#1C1C1E]/40 backdrop-blur-xs flex flex-col items-center justify-center p-4 hidden">
+        <div class="cozy-card p-6 max-w-md w-full flex flex-col gap-4 max-h-[85vh] overflow-y-auto text-left">
+            <div class="flex justify-between items-center">
+                <h3 class="text-base font-extrabold text-[#1C1C1E]" data-i18n="how_to_play">Cara Bermain</h3>
+                <button onclick="closeTutorialModal()" class="w-8 h-8 rounded-full bg-[#F5F4F0] text-[#1C1C1E] flex items-center justify-center font-bold text-xs">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="text-xs leading-relaxed text-[#5C584F] flex flex-col gap-3">
+                <p class="text-[#1C1C1E] font-bold" data-i18n="rule_title_1">1. Aturan Segitiga Senjata:</p>
+                <div class="flex flex-col gap-2 bg-[#F5F4F0] p-3.5 rounded-2xl text-xs">
+                    <span class="text-[#B84A39] font-bold" data-i18n="rule_sword">🗡️ Pedang mengalahkan 🛡️ Perisai</span>
+                    <span class="text-[#2B6CB0] font-bold" data-i18n="rule_shield">🛡️ Perisai mengalahkan 🏹 Panah</span>
+                    <span class="text-[#557324] font-bold" data-i18n="rule_arrow">🏹 Panah mengalahkan 🗡️ Pedang</span>
+                </div>
+                <p class="text-[#1C1C1E] font-bold" data-i18n="rule_title_2">2. Format Best of 3:</p>
+                <p data-i18n="rule_desc_2">Pilih 3 urutan senjata di slotmu. Pemain yang memenangkan lebih banyak slot memenangkan ronde pertarungan!</p>
+            </div>
+            <button onclick="closeTutorialModal()" class="w-full py-3 bg-[#F7B731] hover:bg-[#F5A623] text-[#1C1C1E] font-extrabold rounded-full cozy-btn text-xs mt-1" data-i18n="close">
+                Mengerti
+            </button>
+        </div>
+    </div>
+
+    <!-- MODAL GAME OVER -->
+    <div id="gameover-modal" class="fixed inset-0 z-50 bg-[#1C1C1E]/40 backdrop-blur-xs flex flex-col items-center justify-center p-4 hidden">
+        <div class="cozy-card p-7 max-w-sm w-full text-center flex flex-col items-center gap-3">
+            <div id="gameover-icon" class="w-16 h-16 rounded-full bg-[#FFF8E7] flex items-center justify-center text-3xl my-1"></div>
+            <h2 id="gameover-title" class="text-xl font-extrabold text-[#1C1C1E]">Match Winner!</h2>
+            <p id="gameover-desc" class="text-xs text-[#5C584F] leading-relaxed">
+                Kamu memenangkan pertandingan!
+            </p>
+            <button onclick="restartFullGame()" class="w-full py-3.5 bg-[#F7B731] hover:bg-[#F5A623] text-[#1C1C1E] font-extrabold rounded-full cozy-btn text-xs flex items-center justify-center gap-2 mt-2 shadow-sm">
+                <i class="fa-solid fa-rotate-right"></i> <span data-i18n="play_again">Main Lagi</span>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        /* -------------------------------------------------------------
+           1. I18N DICTIONARY & LANGUAGE STATE
+        ------------------------------------------------------------- */
+        let currentLang = localStorage.getItem('tk_lang') || 'ID';
+
+        const DICTIONARY = {
+            ID: {
+                welcome_tag: "Selamat datang,",
+                hero_title: "Adu Taktik Tiga Senjata",
+                subtitle: "Pedang, Perisai, dan Panah dalam duel kartu santai namun penuh strategi.",
+                choose_mode: "Pilih Mode Bermain",
+                vs_ai: "Versus AI",
+                vs_ai_desc: "Latih strategimu melawan bot pintar.",
+                vs_online: "Online PvP",
+                vs_online_desc: "Duel 1v1 bersama teman via Room & QR.",
+                how_to_play: "Cara Bermain",
+                how_to_play_desc: "Pelajari aturan segitiga senjata & skor",
+                changelog: "Info & Stats",
+                notes_title: "Tentang Tri Karsa TCG",
+                notes_subtitle: "✨ Fitur Utama Permainan:",
+                notes_item_1: "Desain <strong>Modern Cozy Minimalist</strong> yang lembut dan nyaman di mata.",
+                notes_item_2: "Ketuk langsung kartu di Slot 1–3 untuk membatalkannya sebelum terkunci.",
+                notes_item_3: "Efek suara marimba lembut & animasi membalik kartu <strong>3D Flip</strong>.",
+                notes_item_4: "Dukungan duel <strong>Online PvP</strong> instan via kode 4-digit maupun QR Code.",
+                close_btn: "Tutup",
+                reset_stats: "Reset Statistik",
+                streak: "Streak",
+                you: "Kamu",
+                enemy: "Musuh",
+                opponent: "Lawan",
+                menu: "Menu",
+                sword: "Pedang",
+                shield: "Perisai",
+                arrow: "Panah",
+                reset: "Reset",
+                ready_battle: "Ready for Battle",
+                locked: "Terkunci",
+                ready_tag: "Siap",
+                waiting_opponent: "Menunggu lawan...",
+                select_order: "Pilih urutan senjatamu!",
+                online_title: "Online Room Match",
+                create_room_title: "1. Buat Room Baru",
+                create_room_btn: "Buat Room & QR Code",
+                or_divider: "atau",
+                join_room_title: "2. Gabung Room Teman",
+                join_btn: "Join",
+                scan_qr_btn: "Scan QR Room Lawan",
+                scan_instruction: "Arahkan ke QR Room",
+                waiting_qr: "Menunggu pemindaian QR Room...",
+                back_to_menu: "Kembali ke Input Kode",
+                your_room_code: "Kode Room Kamu",
+                share_room_code_desc: "Minta temanmu scan QR ini atau masukkan 4 digit kode di atas",
+                connecting_server: "Menghubungkan ke server...",
+                room_ready: "Room Siap! Menunggu lawan bergabung...",
+                connected_arena: "Terhubung! Masuk ke arena...",
+                room_not_found: "Gagal menghubungkan. Periksa Kode Room.",
+                you_are_ready: "Kamu siap! Menunggu lawan...",
+                opponent_ready: "Lawan sudah siap! Tekan Ready!",
+                both_ready: "Kedua pemain siap! Pertarungan dimulai...",
+                starting_battle: "Pertarungan dimulai!",
+                win: "Menang!",
+                lose: "Kalah!",
+                draw: "Seri!",
+                round_draw: "Ronde berakhir seri!",
+                match_winner: "Pemenang Match!",
+                win_desc: "Kamu memenangkan pertandingan ini!",
+                lose_desc: "memenangkan pertandingan ini.",
+                disconnected: "Koneksi terputus dari lawan.",
+                play_again: "Main Lagi",
+                close: "Mengerti",
+                rule_title_1: "1. Aturan Segitiga Senjata:",
+                rule_sword: "🗡️ Pedang mengalahkan 🛡️ Perisai",
+                rule_shield: "🛡️ Perisai mengalahkan 🏹 Panah",
+                rule_arrow: "🏹 Panah mengalahkan 🗡️ Pedang",
+                rule_title_2: "2. Format Best of 3:",
+                rule_desc_2: "Pilih 3 urutan senjata di slotmu. Pemain yang memenangkan lebih banyak slot memenangkan ronde pertarungan!"
+            },
+            EN: {
+                welcome_tag: "Welcome back,",
+                hero_title: "Three Weapons Tactics",
+                subtitle: "Sword, Shield, and Arrow in a cozy yet strategic card duel.",
+                choose_mode: "Choose Game Mode",
+                vs_ai: "Versus AI",
+                vs_ai_desc: "Practice your tactics against a smart bot.",
+                vs_online: "Online PvP",
+                vs_online_desc: "1v1 duel with friends via Room & QR.",
+                how_to_play: "How to Play",
+                how_to_play_desc: "Learn weapon triangle rules & scoring",
+                changelog: "Info & Stats",
+                notes_title: "About Tri Karsa TCG",
+                notes_subtitle: "✨ Key Game Features:",
+                notes_item_1: "Soft <strong>Modern Cozy Minimalist</strong> design that is easy on the eyes.",
+                notes_item_2: "Tap any card in Slots 1–3 directly to remove it before locking in.",
+                notes_item_3: "Warm marimba sound effects & smooth <strong>3D Flip</strong> card animations.",
+                notes_item_4: "Instant <strong>Online PvP</strong> duel support via 4-digit code or QR scan.",
+                close_btn: "Close",
+                reset_stats: "Reset Stats",
+                streak: "Streak",
+                you: "You",
+                enemy: "Enemy",
+                opponent: "Opponent",
+                menu: "Menu",
+                sword: "Sword",
+                shield: "Shield",
+                arrow: "Arrow",
+                reset: "Reset",
+                ready_battle: "Ready for Battle",
+                locked: "Locked",
+                ready_tag: "Ready",
+                waiting_opponent: "Waiting for opponent...",
+                select_order: "Choose your weapon order!",
+                online_title: "Online Room Match",
+                create_room_title: "1. Create New Room",
+                create_room_btn: "Create Room & QR Code",
+                or_divider: "or",
+                join_room_title: "2. Join Friend's Room",
+                join_btn: "Join",
+                scan_qr_btn: "Scan Opponent's QR Room",
+                scan_instruction: "Point camera at QR Code",
+                waiting_qr: "Waiting for QR Code scan...",
+                back_to_menu: "Back to Code Input",
+                your_room_code: "Your Room Code",
+                share_room_code_desc: "Ask your friend to scan QR or enter 4-digit code above",
+                connecting_server: "Connecting to server...",
+                room_ready: "Room Ready! Waiting for opponent...",
+                connected_arena: "Connected! Entering arena...",
+                room_not_found: "Failed to connect. Check Room Code.",
+                you_are_ready: "You are ready! Waiting for opponent...",
+                opponent_ready: "Opponent is ready! Press Ready!",
+                both_ready: "Both players ready! Starting battle...",
+                starting_battle: "Battle starting!",
+                win: "Victory!",
+                lose: "Defeat!",
+                draw: "Draw!",
+                round_draw: "The round ended in a draw!",
+                match_winner: "Match Winner!",
+                win_desc: "You won the match!",
+                lose_desc: "won the match.",
+                disconnected: "Opponent disconnected.",
+                play_again: "Play Again",
+                close: "Got It",
+                rule_title_1: "1. Weapon Triangle Rules:",
+                rule_sword: "🗡️ Sword defeats 🛡️ Shield",
+                rule_shield: "🛡️ Shield defeats 🏹 Arrow",
+                rule_arrow: "🏹 Arrow defeats 🗡️ Sword",
+                rule_title_2: "2. Best of 3 Format:",
+                rule_desc_2: "Choose 3 weapon order in your slots. Player who wins more slots wins the battle round!"
+            }
+        };
+
+        function getText(key) {
+            return (DICTIONARY[currentLang] && DICTIONARY[currentLang][key]) ? DICTIONARY[currentLang][key] : (DICTIONARY.ID[key] || key);
+        }
+
+        function toggleLanguage() {
+            currentLang = currentLang === 'ID' ? 'EN' : 'ID';
+            localStorage.setItem('tk_lang', currentLang);
+            updateUILanguage();
+        }
+
+        function updateUILanguage() {
+            const langBtnText = document.getElementById('lang-btn-text');
+            if (langBtnText) langBtnText.innerText = currentLang;
+
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (key) el.innerHTML = getText(key);
+            });
+
+            if (gameMode === 'online') {
+                document.getElementById('p2-label').innerText = getText('opponent');
+            } else {
+                document.getElementById('p2-label').innerText = getText('enemy');
+            }
+
+            renderPlayerSlots();
+        }
+
+        /* -------------------------------------------------------------
+           2. AUDIO SOUND EFFECTS (Cozy Marimba & Soft Chime Tone.js)
+        ------------------------------------------------------------- */
+        let soundEnabled = true;
+        let cozySynth = null;
+        let audioInitialized = false;
+
+        function initAudioOnFirstGesture() {
+            if (audioInitialized) return;
+            try {
+                if (typeof Tone !== 'undefined') {
+                    Tone.start();
+                    cozySynth = new Tone.PolySynth(Tone.Synth, {
+                        oscillator: { type: "triangle" },
+                        envelope: {
+                            attack: 0.015,
+                            decay: 0.25,
+                            sustain: 0.05,
+                            release: 0.4
+                        }
+                    }).toDestination();
+                    cozySynth.volume.value = -6;
+                    audioInitialized = true;
+                }
+            } catch (e) {
+                console.log('Audio gesture init:', e);
+            }
+        }
+
+        document.addEventListener('pointerdown', initAudioOnFirstGesture, { once: true });
+        document.addEventListener('click', initAudioOnFirstGesture, { once: true });
+
+        function playSFX(type) {
+            if (!soundEnabled) return;
+            if (!audioInitialized) initAudioOnFirstGesture();
+            if (!cozySynth) return;
+
+            try {
+                if (Tone.context.state !== 'running') {
+                    Tone.start();
+                }
+                const now = Tone.now();
+                if (type === 'select') {
+                    cozySynth.triggerAttackRelease("F5", "16n", now);
+                    cozySynth.triggerAttackRelease("A5", "16n", now + 0.06);
+                } else if (type === 'remove') {
+                    cozySynth.triggerAttackRelease("E5", "16n", now);
+                    cozySynth.triggerAttackRelease("C5", "16n", now + 0.05);
+                } else if (type === 'flip') {
+                    cozySynth.triggerAttackRelease("D5", "32n", now);
+                    cozySynth.triggerAttackRelease("A5", "32n", now + 0.04);
+                } else if (type === 'win') {
+                    cozySynth.triggerAttackRelease(["C5", "E5"], "8n", now);
+                    cozySynth.triggerAttackRelease(["G5", "B5"], "8n", now + 0.12);
+                    cozySynth.triggerAttackRelease(["C6", "E6"], "4n", now + 0.24);
+                } else if (type === 'lose') {
+                    cozySynth.triggerAttackRelease(["A4", "C5"], "8n", now);
+                    cozySynth.triggerAttackRelease(["F4", "A4"], "4n", now + 0.14);
+                } else if (type === 'click') {
+                    cozySynth.triggerAttackRelease("G5", "32n", now);
+                }
+            } catch (err) {
+                console.log('SFX Playback:', err);
+            }
+        }
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            const icon = document.getElementById('sound-icon');
+            const text = document.getElementById('sound-text');
+            if (soundEnabled) {
+                icon.className = 'fa-solid fa-volume-high text-[#F7B731]';
+                text.innerText = 'SFX';
+            } else {
+                icon.className = 'fa-solid fa-volume-xmark text-[#8E8E93]';
+                text.innerText = 'Mute';
+            }
+        }
+
+        /* -------------------------------------------------------------
+           3. GAME DATA & COZY CARD STYLES
+        ------------------------------------------------------------- */
+        const WEAPONS = {
+            sword: { 
+                id: 'sword', 
+                name: 'Pedang',
+                bgClass: 'bg-[#FCE8E6]',
+                textClass: 'text-[#B84A39]',
+                svg: `<svg class="w-9 h-9 md:w-11 md:h-11" viewBox="0 0 64 64" fill="none">
+                    <path d="M46 10L54 18L26 46L18 38L46 10Z" fill="#E17055"/>
+                    <path d="M48 12L52 16L25 43L21 39L48 12Z" fill="#FAB1A0"/>
+                    <path d="M14 34L30 50" stroke="#D9820B" stroke-width="5" stroke-linecap="round"/>
+                    <path d="M19 45L11 53" stroke="#6C5CE7" stroke-width="5" stroke-linecap="round"/>
+                    <circle cx="10" cy="54" r="3.5" fill="#F7B731"/>
+                </svg>`,
+                beats: 'shield'
+            },
+            shield: { 
+                id: 'shield', 
+                name: 'Perisai',
+                bgClass: 'bg-[#E3F1FC]',
+                textClass: 'text-[#2B6CB0]',
+                svg: `<svg class="w-9 h-9 md:w-11 md:h-11" viewBox="0 0 64 64" fill="none">
+                    <path d="M14 12H50V28C50 43 32 54 32 54C32 54 14 43 14 28V12Z" fill="#4A90E2"/>
+                    <path d="M20 18H44V28C44 39 32 47 32 47C32 47 20 39 20 28V18Z" fill="#74B9FF"/>
+                    <circle cx="32" cy="30" r="5" fill="#FFF8E7"/>
+                </svg>`,
+                beats: 'arrow'
+            },
+            arrow: { 
+                id: 'arrow', 
+                name: 'Panah',
+                bgClass: 'bg-[#E8F1DC]',
+                textClass: 'text-[#557324]',
+                svg: `<svg class="w-9 h-9 md:w-11 md:h-11" viewBox="0 0 64 64" fill="none">
+                    <path d="M18 12C38 22 38 42 18 52" stroke="#D9820B" stroke-width="5" stroke-linecap="round"/>
+                    <line x1="18" y1="13" x2="18" y2="51" stroke="#A3A096" stroke-width="2"/>
+                    <line x1="12" y1="32" x2="48" y2="32" stroke="#789B3B" stroke-width="4" stroke-linecap="round"/>
+                    <polygon points="54,32 42,24 44,32 42,40" fill="#789B3B"/>
+                </svg>`,
+                beats: 'sword'
+            }
+        };
+
+        let playerSelection = [];
+        let enemySelection = [];
+        let playerScore = 0;
+        let enemyScore = 0;
+        let gameMode = 'ai'; 
+        let winStreak = parseInt(localStorage.getItem('tk_streak') || '0');
+        let totalWins = parseInt(localStorage.getItem('tk_wins') || '0');
+        let totalLosses = parseInt(localStorage.getItem('tk_losses') || '0');
+
+        // WebRTC & Online State
+        let peer = null;
+        let conn = null;
+        let myRoomCode = '';
+        let isHost = false;
+        let html5QrCode = null;
+        let currentCameraFacing = 'environment';
+        let localPlayerReady = false;
+        let remotePlayerReady = false;
+        let remoteCards = null;
+
+        /* -------------------------------------------------------------
+           4. STATS MANAGEMENT & PERSISTENCE
+        ------------------------------------------------------------- */
+        function loadSavedStats() {
+            document.getElementById('streak-count').innerText = winStreak;
+            document.getElementById('total-stats').innerText = `${totalWins}/${totalLosses}`;
+        }
+
+        function saveStats() {
+            localStorage.setItem('tk_streak', winStreak.toString());
+            localStorage.setItem('tk_wins', totalWins.toString());
+            localStorage.setItem('tk_losses', totalLosses.toString());
+            loadSavedStats();
+        }
+
+        function resetSavedStats() {
+            winStreak = 0;
+            totalWins = 0;
+            totalLosses = 0;
+            saveStats();
+            closeChangelogModal();
+        }
+
+        /* -------------------------------------------------------------
+           5. GAME INITIALIZATION & MODAL HANDLERS
+        ------------------------------------------------------------- */
+        window.addEventListener('DOMContentLoaded', () => {
+            loadSavedStats();
+            updateUILanguage();
+        });
+
+        function cleanupPeerConnection() {
+            if (conn) {
+                try { conn.close(); } catch (e) {}
+                conn = null;
+            }
+            if (peer) {
+                try { peer.destroy(); } catch (e) {}
+                peer = null;
+            }
+        }
+
+        function selectGameMode(mode) {
+            playSFX('click');
+            gameMode = mode;
+            document.getElementById('title-screen').classList.add('hidden');
+            
+            const badge = document.getElementById('game-mode-badge');
+            const p2Label = document.getElementById('p2-label');
+
+            if (mode === 'ai') {
+                cleanupPeerConnection();
+                badge.innerText = 'VS AI Mode';
+                p2Label.innerText = getText('enemy');
+            } else {
+                badge.innerText = 'Online PvP';
+                p2Label.innerText = getText('opponent');
+            }
+
+            resetRound();
+        }
+
+        function returnToTitle() {
+            playSFX('click');
+            cleanupPeerConnection();
+            document.getElementById('gameover-modal').classList.add('hidden');
+            document.getElementById('title-screen').classList.remove('hidden');
+        }
+
+        function openChangelogModal() {
+            playSFX('click');
+            document.getElementById('changelog-modal').classList.remove('hidden');
+        }
+
+        function closeChangelogModal() {
+            playSFX('click');
+            document.getElementById('changelog-modal').classList.add('hidden');
+        }
+
+        function openTutorialModal() {
+            playSFX('click');
+            document.getElementById('tutorial-modal').classList.remove('hidden');
+        }
+
+        function closeTutorialModal() {
+            playSFX('click');
+            document.getElementById('tutorial-modal').classList.add('hidden');
+        }
+
+        /* -------------------------------------------------------------
+           6. WEBPAGE ONLINE MATCHMAKING & QR SCANNER
+        ------------------------------------------------------------- */
+        function openOnlineRoomModal() {
+            playSFX('click');
+            cleanupPeerConnection();
+            document.getElementById('online-modal').classList.remove('hidden');
+            backToSetupView();
+        }
+
+        function closeOnlineRoomModal() {
+            playSFX('click');
+            stopQRScanner();
+            if (gameMode !== 'online') {
+                cleanupPeerConnection();
+            }
+            document.getElementById('online-modal').classList.add('hidden');
+        }
+
+        function backToSetupView() {
+            stopQRScanner();
+            document.getElementById('online-setup-view').classList.remove('hidden');
+            document.getElementById('qr-scan-view').classList.add('hidden');
+            document.getElementById('online-waiting-view').classList.add('hidden');
+        }
+
+        function generate4DigitCode() {
+            return Math.floor(1000 + Math.random() * 9000).toString();
+        }
+
+        function createOnlineRoom() {
+            playSFX('click');
+            cleanupPeerConnection();
+            isHost = true;
+            myRoomCode = generate4DigitCode();
+
+            document.getElementById('online-setup-view').classList.add('hidden');
+            document.getElementById('online-waiting-view').classList.remove('hidden');
+            document.getElementById('display-room-code').innerText = myRoomCode;
+            document.getElementById('online-status-text').innerText = getText('connecting_server');
+
+            const qrContainer = document.getElementById('room-qrcode-display');
+            qrContainer.innerHTML = '';
+            new QRCode(qrContainer, {
+                text: myRoomCode,
+                width: 140,
+                height: 140,
+                colorDark : "#1C1C1E",
+                colorLight : "#FFFFFF",
+                correctLevel : QRCode.CorrectLevel.H
+            });
+
+            const peerId = 'trikarsa-' + myRoomCode;
+            peer = new Peer(peerId);
+
+            peer.on('open', () => {
+                document.getElementById('online-status-text').innerText = getText('room_ready');
+            });
+
+            peer.on('connection', (connection) => {
+                conn = connection;
+                setupPeerEvents();
+            });
+
+            peer.on('error', (err) => {
+                console.error(err);
+                document.getElementById('online-status-text').innerText = 'Error: ' + err.type;
+            });
+        }
+
+        function joinOnlineRoom(codeOverride) {
+            playSFX('click');
+            cleanupPeerConnection();
+            isHost = false;
+            const code = codeOverride || document.getElementById('room-code-input').value.trim();
+
+            if (code.length !== 4) {
+                const input = document.getElementById('room-code-input');
+                input.classList.add('border-[#E17055]');
+                setTimeout(() => input.classList.remove('border-[#E17055]'), 1000);
+                return;
+            }
+
+            document.getElementById('online-setup-view').classList.add('hidden');
+            document.getElementById('online-waiting-view').classList.remove('hidden');
+            document.getElementById('display-room-code').innerText = code;
+            document.getElementById('online-status-text').innerText = getText('connecting_server');
+            document.getElementById('room-qrcode-display').innerHTML = '<i class="fa-solid fa-spinner animate-spin text-3xl text-[#F7B731] my-8"></i>';
+
+            peer = new Peer();
+
+            peer.on('open', () => {
+                const targetPeerId = 'trikarsa-' + code;
+                conn = peer.connect(targetPeerId);
+                setupPeerEvents();
+            });
+
+            peer.on('error', (err) => {
+                console.error(err);
+                document.getElementById('online-status-text').innerText = getText('room_not_found');
+            });
+        }
+
+        function setupPeerEvents() {
+            conn.on('open', () => {
+                playSFX('win');
+                document.getElementById('online-status-text').innerText = getText('connected_arena');
+                setTimeout(() => {
+                    document.getElementById('online-modal').classList.add('hidden');
+                    selectGameMode('online');
+                }, 800);
+            });
+
+            conn.on('data', (data) => {
+                handleNetworkMessage(data);
+            });
+
+            conn.on('close', () => {
+                document.getElementById('banner-main').innerText = getText('disconnected');
+                setTimeout(() => returnToTitle(), 1500);
+            });
+        }
+
+        function openQRScannerView() {
+            playSFX('click');
+            document.getElementById('online-setup-view').classList.add('hidden');
+            document.getElementById('qr-scan-view').classList.remove('hidden');
+            startQRScanner();
+        }
+
+        function startQRScanner() {
+            if (html5QrCode) stopQRScanner();
+
+            html5QrCode = new Html5Qrcode("qr-reader");
+            const config = { fps: 10, qrbox: { width: 180, height: 180 } };
+
+            html5QrCode.start(
+                { facingMode: currentCameraFacing },
+                config,
+                (decodedText) => {
+                    playSFX('select');
+                    stopQRScanner();
+                    joinOnlineRoom(decodedText);
+                },
+                () => {}
+            ).catch(err => {
+                console.error('Camera error:', err);
+                document.getElementById('qr-scan-status').innerText = 'Gagal mengakses kamera.';
+            });
+        }
+
+        function toggleCameraFacing() {
+            currentCameraFacing = currentCameraFacing === 'environment' ? 'user' : 'environment';
+            startQRScanner();
+        }
+
+        function stopQRScanner() {
+            if (html5QrCode) {
+                html5QrCode.stop().then(() => {
+                    html5QrCode.clear();
+                    html5QrCode = null;
+                }).catch(() => {
+                    html5QrCode = null;
+                });
+            }
+        }
+
+        /* -------------------------------------------------------------
+           7. BATTLE LOGIC & COZY CARD RENDERING
+        ------------------------------------------------------------- */
+        function addWeapon(type) {
+            if (playerSelection.length >= 3 || isSlotsLocked) return;
+            playSFX('click');
+            playerSelection.push(type);
+            renderPlayerSlots();
+            updateReadyButtonState();
+        }
+
+        function removeWeaponAt(index) {
+            if (isSlotsLocked || !playerSelection[index]) return;
+            playSFX('remove');
+            playerSelection.splice(index, 1);
+            renderPlayerSlots();
+            updateReadyButtonState();
+        }
+
+        function updateReadyButtonState() {
+            const rBtn = document.getElementById('ready-btn');
+            if (playerSelection.length === 3) {
+                rBtn.disabled = false;
+                rBtn.className = "flex-1 py-3 bg-[#F7B731] hover:bg-[#F5A623] text-[#1C1C1E] font-extrabold text-xs md:text-sm rounded-full cozy-btn shadow-md cursor-pointer transition-all";
+            } else {
+                rBtn.disabled = true;
+                rBtn.className = "flex-1 py-3 bg-[#E5E3DC] text-[#A3A096] font-extrabold text-xs md:text-sm rounded-full cursor-not-allowed transition-all";
+            }
+        }
+
+        function resetSelection() {
+            if (isSlotsLocked) return;
+            playSFX('remove');
+            playerSelection = [];
+            renderPlayerSlots();
+            updateReadyButtonState();
+        }
+
+        function renderPlayerSlots() {
+            for (let i = 0; i < 3; i++) {
+                const slot = document.getElementById(`p-slot-${i}`);
+                if (!slot) continue;
+                if (playerSelection[i]) {
+                    const w = WEAPONS[playerSelection[i]];
+                    slot.onclick = isSlotsLocked ? null : () => removeWeaponAt(i);
+                    slot.className = isSlotsLocked
+                        ? "w-24 h-32 sm:w-28 sm:h-40 md:w-32 md:h-44 rounded-[22px] bg-white flex flex-col items-center justify-center p-2 relative shadow-md border border-[#EAE8E1] transition-all slot-locked"
+                        : "w-24 h-32 sm:w-28 sm:h-40 md:w-32 md:h-44 rounded-[22px] bg-white flex flex-col items-center justify-center p-2 relative shadow-md border border-[#EAE8E1] transition-all cursor-pointer hover:scale-[1.03] active:scale-95 group";
+                    slot.innerHTML = `
+                        ${isSlotsLocked ? `
+                            <div class="absolute top-2 left-2 bg-[#E8F1DC] text-[#557324] text-[9px] px-2 py-0.5 rounded-full flex items-center gap-1 font-extrabold">
+                                <i class="fa-solid fa-lock text-[8px]"></i> ${getText('ready_tag')}
+                            </div>
+                        ` : `
+                            <span class="remove-hint absolute top-2 right-2 w-5 h-5 rounded-full bg-[#F5F4F0] group-hover:bg-[#FCE8E6] text-[#8E8E93] group-hover:text-[#E17055] flex items-center justify-center text-[10px] transition-colors">
+                                <i class="fa-solid fa-xmark"></i>
+                            </span>
+                        `}
+                        <div class="w-12 h-12 md:w-14 md:h-14 rounded-2xl ${w.bgClass} flex items-center justify-center mb-1.5">
+                            ${w.svg}
+                        </div>
+                        <span class="text-xs font-extrabold ${w.textClass}">${getText(w.id)}</span>
+                    `;
+                } else {
+                    slot.onclick = null;
+                    slot.className = "w-24 h-32 sm:w-28 sm:h-40 md:w-32 md:h-44 rounded-[22px] border-2 border-dashed border-[#D6D3C9] bg-white/50 flex flex-col items-center justify-center transition-all relative";
+                    slot.innerHTML = `<span class="text-xs text-[#A3A096] font-bold">Slot ${i + 1}</span>`;
+                }
+            }
+        }
+
+        function updateEnemyReadyLEDs(isReady) {
+            for (let i = 0; i < 3; i++) {
+                const led = document.getElementById(`e-led-${i}`);
+                if (led) {
+                    if (isReady) {
+                        led.className = "absolute top-2.5 right-2.5 w-2.5 h-2.5 rounded-full bg-[#789B3B] animate-pulse shadow-xs";
+                    } else {
+                        led.className = "absolute top-2.5 right-2.5 w-2.5 h-2.5 rounded-full bg-[#C7C4BA]";
+                    }
+                }
+            }
+        }
+
+        function setWeaponControlsDisabled(disabled) {
+            document.getElementById('btn-sword').disabled = disabled;
+            document.getElementById('btn-shield').disabled = disabled;
+            document.getElementById('btn-arrow').disabled = disabled;
+            document.getElementById('btn-reset').disabled = disabled;
+        }
+
+        function applyPlayerSlotsLockedUI() {
+            renderPlayerSlots();
+        }
+
+        let isSlotsLocked = false;
+
+        function handleReadyClick() {
+            if (playerSelection.length !== 3 || isSlotsLocked) return;
+            playSFX('select');
+            isSlotsLocked = true;
+            setWeaponControlsDisabled(true);
+
+            const readyBtn = document.getElementById('ready-btn');
+            readyBtn.disabled = true;
+            readyBtn.className = "flex-1 py-3 bg-[#E8F1DC] text-[#557324] font-extrabold text-xs md:text-sm rounded-full cursor-not-allowed transition-all";
+            readyBtn.innerText = getText('locked');
+            applyPlayerSlotsLockedUI();
+
+            if (gameMode === 'ai') {
+                enemySelection = [];
+                const keys = Object.keys(WEAPONS);
+                for (let i = 0; i < 3; i++) {
+                    enemySelection.push(keys[Math.floor(Math.random() * keys.length)]);
+                }
+                updateEnemyReadyLEDs(true);
+                executeRoundComparison();
+            } else {
+                localPlayerReady = true;
+                if (conn && conn.open) {
+                    conn.send({
+                        type: 'READY_CARDS',
+                        cards: playerSelection
+                    });
+                }
+
+                if (remotePlayerReady) {
+                    document.getElementById('banner-main').innerText = getText('both_ready');
+                    setTimeout(() => executeRoundComparison(), 1000);
+                } else {
+                    document.getElementById('banner-main').innerText = getText('you_are_ready');
+                }
+            }
+        }
+
+        function handleNetworkMessage(data) {
+            if (data.type === 'READY_CARDS') {
+                remotePlayerReady = true;
+                remoteCards = data.cards;
+                enemySelection = remoteCards;
+                updateEnemyReadyLEDs(true);
+
+                if (localPlayerReady) {
+                    document.getElementById('banner-main').innerText = getText('both_ready');
+                    setTimeout(() => executeRoundComparison(), 1000);
+                } else {
+                    document.getElementById('banner-main').innerText = getText('opponent_ready');
+                }
+            } else if (data.type === 'RESTART_MATCH') {
+                document.getElementById('gameover-modal').classList.add('hidden');
+                resetRound();
+            }
+        }
+
+        function executeRoundComparison() {
+            document.getElementById('banner-main').innerText = getText('starting_battle');
+            
+            let currentSlot = 0;
+
+            function revealNextSlot() {
+                if (currentSlot >= 3) {
+                    finishRoundEvaluation();
+                    return;
+                }
+
+                playSFX('flip');
+
+                const inner = document.getElementById(`e-card-inner-${currentSlot}`);
+                const front = document.getElementById(`e-card-front-${currentSlot}`);
+                const wE = WEAPONS[enemySelection[currentSlot]];
+
+                front.className = "card-face card-front bg-white border border-[#EAE8E1] flex flex-col items-center justify-center p-2";
+                front.innerHTML = `
+                    <div class="w-12 h-12 md:w-14 md:h-14 rounded-2xl ${wE.bgClass} flex items-center justify-center mb-1.5">
+                        ${wE.svg}
+                    </div>
+                    <span class="text-xs font-extrabold ${wE.textClass}">${getText(wE.id)}</span>
+                `;
+
+                inner.classList.add('flipped');
+
+                const pSlot = document.getElementById(`p-slot-${currentSlot}`);
+                const pChoice = playerSelection[currentSlot];
+                const eChoice = enemySelection[currentSlot];
+
+                setTimeout(() => {
+                    if (WEAPONS[pChoice].beats === eChoice) {
+                        playSFX('win');
+                        pSlot.classList.remove('slot-locked');
+                        pSlot.classList.add('ring-4', 'ring-[#789B3B]/40', 'bg-[#F6FAF0]');
+                        front.classList.add('opacity-65', 'grayscale-[35%]');
+                        playerScore++;
+                    } else if (WEAPONS[eChoice].beats === pChoice) {
+                        playSFX('lose');
+                        pSlot.classList.remove('slot-locked');
+                        front.classList.add('ring-4', 'ring-[#E17055]/40', 'bg-[#FFF7F5]');
+                        pSlot.classList.add('opacity-65', 'grayscale-[35%]');
+                        enemyScore++;
+                    } else {
+                        playSFX('select');
+                        pSlot.classList.remove('slot-locked');
+                        pSlot.classList.add('ring-2', 'ring-[#F7B731]/50');
+                        front.classList.add('ring-2', 'ring-[#F7B731]/50');
+                    }
+
+                    document.getElementById('player-score').innerText = playerScore;
+                    document.getElementById('enemy-score').innerText = enemyScore;
+
+                    currentSlot++;
+                    setTimeout(revealNextSlot, 1150);
+                }, 600);
+            }
+
+            revealNextSlot();
+        }
+
+        function finishRoundEvaluation() {
+            setTimeout(() => {
+                const modal = document.getElementById('gameover-modal');
+                const title = document.getElementById('gameover-title');
+                const desc = document.getElementById('gameover-desc');
+                const icon = document.getElementById('gameover-icon');
+
+                modal.classList.remove('hidden');
+
+                if (playerScore > enemyScore) {
+                    playSFX('win');
+                    winStreak++;
+                    totalWins++;
+                    icon.className = "w-16 h-16 rounded-full bg-[#FFF8E7] flex items-center justify-center text-3xl my-1";
+                    icon.innerHTML = '<i class="fa-solid fa-trophy text-[#F7B731]"></i>';
+                    title.innerText = getText('win');
+                    title.className = "text-xl font-extrabold text-[#1C1C1E]";
+                    desc.innerText = getText('win_desc');
+                } else if (enemyScore > playerScore) {
+                    playSFX('lose');
+                    winStreak = 0;
+                    totalLosses++;
+                    icon.className = "w-16 h-16 rounded-full bg-[#FCE8E6] flex items-center justify-center text-3xl my-1";
+                    icon.innerHTML = '<i class="fa-solid fa-heart-crack text-[#E17055]"></i>';
+                    title.innerText = getText('lose');
+                    title.className = "text-xl font-extrabold text-[#B84A39]";
+                    desc.innerText = `${gameMode === 'online' ? getText('opponent') : getText('enemy')} ${getText('lose_desc')}`;
+                } else {
+                    playSFX('select');
+                    icon.className = "w-16 h-16 rounded-full bg-[#E8F1DC] flex items-center justify-center text-3xl my-1";
+                    icon.innerHTML = '<i class="fa-solid fa-handshake text-[#789B3B]"></i>';
+                    title.innerText = getText('draw');
+                    title.className = "text-xl font-extrabold text-[#1C1C1E]";
+                    desc.innerText = getText('round_draw');
+                }
+
+                saveStats();
+            }, 800);
+        }
+
+        function restartFullGame() {
+            playSFX('click');
+            document.getElementById('gameover-modal').classList.add('hidden');
+
+            if (gameMode === 'online' && conn && conn.open) {
+                conn.send({ type: 'RESTART_MATCH' });
+            }
+
+            resetRound();
+        }
+
+        function resetRound() {
+            playerSelection = [];
+            enemySelection = [];
+            playerScore = 0;
+            enemyScore = 0;
+            isSlotsLocked = false;
+            localPlayerReady = false;
+            remotePlayerReady = false;
+            remoteCards = null;
+
+            document.getElementById('player-score').innerText = '0';
+            document.getElementById('enemy-score').innerText = '0';
+            document.getElementById('banner-main').innerText = getText('select_order');
+
+            setWeaponControlsDisabled(false);
+
+            const rBtn = document.getElementById('ready-btn');
+            rBtn.disabled = true;
+            rBtn.className = "flex-1 py-3 bg-[#E5E3DC] text-[#A3A096] font-extrabold text-xs md:text-sm rounded-full cursor-not-allowed transition-all";
+            rBtn.innerText = getText('ready_battle');
+
+            updateEnemyReadyLEDs(false);
+
+            for (let i = 0; i < 3; i++) {
+                const inner = document.getElementById(`e-card-inner-${i}`);
+                inner.classList.remove('flipped');
+                const front = document.getElementById(`e-card-front-${i}`);
+                front.innerHTML = '';
+            }
+
+            renderPlayerSlots();
+        }
+    </script>
+</body>
+</html>
